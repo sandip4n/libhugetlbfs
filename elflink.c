@@ -574,6 +574,20 @@ static unsigned long hugetlb_slice_start(unsigned long addr)
 	}
 
 #if defined(__powerpc64__)
+	char param[24];
+	FILE *fp;
+
+	/* Check if the kernel is using 256MB segments instead of 1TB */
+	fp = popen("cat /proc/cmdline | grep -o disable_1tb_segments", "r");
+	if (!fp || fscanf(fp, "%s", param) < 0) {
+		ERROR("Failed to determine segment size\n");
+		abort();
+	}
+
+	pclose(fp);
+	if (!strcmp(param, "disable_1tb_segments"))
+		return ALIGN_DOWN(addr, SLICE_LOW_SIZE);
+
 	if (addr < SLICE_LOW_TOP)
 		return ALIGN_DOWN(addr, SLICE_LOW_SIZE);
 	else if (addr < SLICE_HIGH_SIZE)
